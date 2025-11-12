@@ -1,181 +1,432 @@
-﻿#include <GL/freeglut.h>
+﻿#include <windows.h>
+#include <commdlg.h> 
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#include <GL/freeglut.h>
 #include <chrono>
 #include <string>
 #include <sstream>
+#include <fstream>
+#include <vector>
 #include <cmath>
+#include <iomanip>
+#include <algorithm>
 
 using namespace std;
 using namespace std::chrono;
 
-// --- State ---
-steady_clock::time_point startTime;
-bool running = false;
-bool stopped = false;
-double elapsedSeconds = 0.0;
-double finalPrice = 0.0;
+// ---------------------- Logo-Variablen ----------------------
+GLuint logoTexture = 0;
+int logoW = 0, logoH = 0;
 
-// --- Tarif ---
+// ---------------------- Texturlade-Funktion ----------------------
+GLuint loadTexture(const char* filename, int& w, int& h) {
+    int n;
+    unsigned char* data = stbi_load(filename, &w, &h, &n, 4);
+    if (!data) return 0;
+
+    GLuint tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    stbi_image_free(data);
+    return tex;
+}
+
+// ---------------------- Fahrten-Daten ----------------------
+struct Fahrt {
+    int minuten;
+    int sekunden;
+    double preis;
+};
+vector<Fahrt> letzteFahrten;
+
+// ---------------------- Tarif ----------------------
 const double grundgebuehr = 1.00;
 const double preisProMinute = 0.25;
 
-// --- Fenstergröße (Pixel) ---
-int winW = 854, winH = 480;
+// ---------------------- Fenstergrößen & IDs ----------------------
+int mainWinId = -1;
+int verwaltenWinId = -1;
+int mainW = 854, mainH = 480;
+int manaW = 0, manaH = 0;
 
-// --- Buttons in Pixel ---
+// ---------------------- Buttons ----------------------
 struct Button {
-    float x, y, w, h;      // Pixel
+    float x, y, w, h;
     string label;
     bool hover = false;
-} startBtn, stopBtn, resetBtn;
+};
+Button startBtn, stopBtn, manageBtn;
+Button exportBtn, closeBtn;
 
-// ---- Zeichnen von Bitmap-Text in Pixeln (oben links = (0,0) -> hier nutzen wir unten links = (0,0)) ---
-void drawTextPx(float x, float y, void* font, const string& s) {
+// ---------------------- Zeit-/Preis-Status ----------------------
+steady_clock::time_point startTime;
+bool running = false;
+bool stopped = false;
+double elapsedSecs = 0.0;
+double finalPrice = 0.0;
+
+// ---------------------- Text & Buttons ----------------------
+void drawText(float x, float y, void* font, const string& s) {
     glRasterPos2f(x, y);
     for (unsigned char c : s) glutBitmapCharacter(font, c);
 }
-int textWidthPx(void* font, const string& s) {
+int textWidth(void* font, const string& s) {
     return glutBitmapLength(font, reinterpret_cast<const unsigned char*>(s.c_str()));
 }
-
-// --- Layout neu berechnen (zentrieren) ---
-void relayout() {
-    // Buttons: 3 nebeneinander, mittig unten
-    const float btnW = 150.f, btnH = 48.f, gap = 24.f;
-    float totalW = 3 * btnW + 2 * gap;
-    float startX = (winW - totalW) * 0.5f;
-    float y = 24.f; // 24 px vom unteren Rand
-
-    startBtn = { startX,            y, btnW, btnH, "Start" };
-    stopBtn = { startX + btnW + gap, y, btnW, btnH, "Stop" };
-    resetBtn = { startX + 2 * (btnW + gap), y, btnW, btnH, "Reset" };
+bool inside(const Button& b, int x, int y, int winH) {
+    int glY = winH - y;
+    return x >= b.x && x <= b.x + b.w && glY >= b.y && glY <= b.y + b.h;
+}
+void drawButton(const Button& b, void* font = GLUT_BITMAP_HELVETICA_18) {
+    glColor3f(b.hover ? 0.35f : 0.25f, b.hover ? 0.35f : 0.25f, b.hover ? 0.35f : 0.25f);
+    glBegin(GL_QUADS);
+    glVertex2f(b.x, b.y);
+    glVertex2f(b.x + b.w, b.y);
+    glVertex2f(b.x + b.w, b.y + b.h);
+    glVertex2f(b.x, b.y + b.h);
+    glEnd();
+    glColor3f(1, 1, 1);
+    int tw = textWidth(font, b.label);
+    drawText(b.x + (b.w - tw) * 0.5f, b.y + (b.h - 18) * 0.5f + 6, font, b.label);
 }
 
-// --- Anzeige ---
-void display() {
+// ---------------------- Layout Hauptfenster ----------------------
+void relayoutMain() {
+    const float btnW = 150.f, btnH = 48.f, gap = 30.f;
+
+    // Zwei Buttons zentriert am unteren Rand
+    float totalW = 2.f * btnW + gap;
+    float startX = (mainW - totalW) * 0.5f;
+    float y = 24.f;
+
+    startBtn = { startX, y, btnW, btnH, "Start" };
+    stopBtn = { startX + btnW + gap, y, btnW, btnH, "Stop" };
+
+    // "Verwalten" oben rechts
+    const float mW = 130.f, mH = 36.f, margin = 12.f;
+    manageBtn = { static_cast<float>(mainW - margin - mW),
+                  static_cast<float>(mainH - margin - mH),
+                  mW, mH, "Verwalten" };
+}
+
+// ---------------------- Anzeige Hauptfenster ----------------------
+void displayMain() {
     glClear(GL_COLOR_BUFFER_BIT);
     glColor3f(1, 1, 1);
 
-    // Zeit aktualisieren, wenn laufend
+    // --- Dynamisch skaliertes Logo oben links ---
+    if (logoTexture) {
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, logoTexture);
+        glColor3f(1, 1, 1);
+
+        // --- Position oben links ---
+        float x = 10.0f;
+        float y = mainH - 10.0f;
+
+        // --- Dynamische Skalierung ---
+        // Bei Fensterhöhe 480px -> scale = 0.5
+        // Bei Fensterhöhe >= 900px -> scale = 1.0
+        float minHeight = 480.0f;
+        float maxHeight = 900.0f;
+
+        float scale = 0.5f + 0.5f * ((mainH - minHeight) / (maxHeight - minHeight));
+        if (scale < 0.5f) scale = 0.5f;
+        if (scale > 1.0f) scale = 1.0f;
+
+        // --- Größe berechnen ---
+        float w = logoW * scale;
+        float h = logoH * scale;
+
+        // --- Zeichnen ---
+        glBegin(GL_QUADS);
+        glTexCoord2f(0, 1); glVertex2f(x, y - h);
+        glTexCoord2f(1, 1); glVertex2f(x + w, y - h);
+        glTexCoord2f(1, 0); glVertex2f(x + w, y);
+        glTexCoord2f(0, 0); glVertex2f(x, y);
+        glEnd();
+
+        glDisable(GL_TEXTURE_2D);
+    }
+
+    // --- Zeit / Preisanzeige ---
     if (running) {
         auto now = steady_clock::now();
-        elapsedSeconds = duration<double>(now - startTime).count();
+        elapsedSecs = duration<double>(now - startTime).count();
         stopped = false;
     }
 
-    // mm:ss
-    int totalSec = static_cast<int>(elapsedSeconds);
+    int totalSec = static_cast<int>(elapsedSecs);
     int mm = totalSec / 60;
     int ss = totalSec % 60;
-
-    // Preis pro angefangene Minute
-    double minGerundet = ceil(elapsedSeconds / 60.0);
-    if (minGerundet < 0) minGerundet = 0;
+    double minGerundet = ceil(elapsedSecs / 60.0);
     double aktuellerPreis = grundgebuehr + minGerundet * preisProMinute;
     if (stopped) finalPrice = aktuellerPreis;
 
-    // Überschriften mittig
     void* fontBig = GLUT_BITMAP_TIMES_ROMAN_24;
     void* fontMed = GLUT_BITMAP_HELVETICA_18;
 
-    // Zeit-String
-    ostringstream oss;
-    oss << "Zeit: " << (mm < 10 ? "0" : "") << mm << ":" << (ss < 10 ? "0" : "") << ss << " (mm:ss)";
-    string timeStr = oss.str();
-    int tw = textWidthPx(fontBig, timeStr);
-    drawTextPx((winW - tw) * 0.5f, winH - 100.f, fontBig, timeStr);
+    ostringstream tss;
+    tss << "Zeit: " << (mm < 10 ? "0" : "") << mm << ":" << (ss < 10 ? "0" : "") << ss;
+    int tw = textWidth(fontBig, tss.str());
+    drawText((mainW - tw) * 0.5f, mainH - 110.f, fontBig, tss.str());
 
-    // Preis-String
-    ostringstream pss; pss.setf(std::ios::fixed); pss.precision(2);
-    if (stopped) pss << "Endpreis: " << finalPrice << " EUR";
-    else         pss << "Aktueller Preis: " << aktuellerPreis << " EUR";
-    string priceStr = pss.str();
-    int pw = textWidthPx(fontMed, priceStr);
-    drawTextPx((winW - pw) * 0.5f, winH - 140.f, fontMed, priceStr);
+    ostringstream pss;
+    pss << std::fixed << std::setprecision(2)
+        << (stopped ? "Endpreis: " : "Aktueller Preis: ")
+        << (stopped ? finalPrice : aktuellerPreis) << " EUR";
+    int pw = textWidth(fontMed, pss.str());
+    drawText((mainW - pw) * 0.5f, mainH - 150.f, fontMed, pss.str());
 
-    // Buttons
-    auto drawButton = [](const Button& b) {
-        glColor3f(b.hover ? 0.3f : 0.2f, b.hover ? 0.3f : 0.2f, b.hover ? 0.3f : 0.2f);
-        glBegin(GL_QUADS);
-        glVertex2f(b.x, b.y);
-        glVertex2f(b.x + b.w, b.y);
-        glVertex2f(b.x + b.w, b.y + b.h);
-        glVertex2f(b.x, b.y + b.h);
-        glEnd();
+    // --- Hinweistext unter der Preisangabe ---
+    std::string hinweis1 = "Hinweis zum Abstellen des E-Scooters";
+    std::string hinweis2 = "Bitte stelle den E-Scooter ordnungsgemäß und gemäß StVO ab.";
+    std::string hinweis3 = "Blockiere keine Gehwege, Einfahrten, Radwege oder Rettungswege";
+    std::string hinweis4 = "und stelle das Fahrzeug stabil und sicher ab.";
+    std::string hinweis5 = "Du bist selbst dafür verantwortlich, den Roller rechtmäßig zu parken.";
+    std::string hinweis6 = "Der Betreiber übernimmt keine Haftung für Bußgelder, Schäden oder Kosten,";
+    std::string hinweis7 = "die durch falsches Abstellen entstehen.";
 
-        glColor3f(1, 1, 1);
-        int lw = textWidthPx(GLUT_BITMAP_HELVETICA_18, b.label);
-        drawTextPx(b.x + (b.w - lw) * 0.5f, b.y + (b.h - 18) * 0.5f + 6, GLUT_BITMAP_HELVETICA_18, b.label);
-        };
+    // Überschrift etwas größer und rot
+    glColor3f(1.0f, 0.0f, 0.0f);
+
+    int hw1 = textWidth(GLUT_BITMAP_HELVETICA_18, hinweis1);
+    drawText((mainW - hw1) * 0.5f, mainH - 200.f, GLUT_BITMAP_HELVETICA_18, hinweis1);
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+
+    // Fließtext kleiner
+    int yBase = mainH - 230.f;
+    int lineSpacing = 22;
+
+    drawText((mainW - textWidth(GLUT_BITMAP_HELVETICA_12, hinweis2)) * 0.5f, yBase - 0 * lineSpacing, GLUT_BITMAP_HELVETICA_12, hinweis2);
+    drawText((mainW - textWidth(GLUT_BITMAP_HELVETICA_12, hinweis3)) * 0.5f, yBase - 1 * lineSpacing, GLUT_BITMAP_HELVETICA_12, hinweis3);
+    drawText((mainW - textWidth(GLUT_BITMAP_HELVETICA_12, hinweis4)) * 0.5f, yBase - 2 * lineSpacing, GLUT_BITMAP_HELVETICA_12, hinweis4);
+    drawText((mainW - textWidth(GLUT_BITMAP_HELVETICA_12, hinweis5)) * 0.5f, yBase - 3 * lineSpacing, GLUT_BITMAP_HELVETICA_12, hinweis5);
+    drawText((mainW - textWidth(GLUT_BITMAP_HELVETICA_12, hinweis6)) * 0.5f, yBase - 4 * lineSpacing, GLUT_BITMAP_HELVETICA_12, hinweis6);
+    drawText((mainW - textWidth(GLUT_BITMAP_HELVETICA_12, hinweis7)) * 0.5f, yBase - 5 * lineSpacing, GLUT_BITMAP_HELVETICA_12, hinweis7);
+
 
     drawButton(startBtn);
     drawButton(stopBtn);
-    drawButton(resetBtn);
+    drawButton(manageBtn);
+    glutSwapBuffers();
+}
+
+// ---------------------- Vorab-Prototypen ----------------------
+void mouseMain(int, int, int, int);
+void passiveMain(int, int);
+void reshapeMain(int, int);
+void displayVerwalten();
+void reshapeVerwalten(int, int);
+void mouseVerwalten(int, int, int, int);
+void passiveVerwalten(int, int);
+void relayoutVerwalten();
+void exportCSV();
+
+// ---------------------- Maus & Hover Hauptfenster ----------------------
+void mouseMain(int button, int state, int x, int y) {
+    if (button != GLUT_LEFT_BUTTON || state != GLUT_DOWN) return;
+
+    if (inside(startBtn, x, y, mainH)) {
+        startTime = steady_clock::now(); running = true; stopped = false;
+    }
+    else if (inside(stopBtn, x, y, mainH)) {
+        running = false; stopped = true;
+        int totalSec = static_cast<int>(elapsedSecs);
+        int mm = totalSec / 60, ss = totalSec % 60;
+        double preis = grundgebuehr + ceil(elapsedSecs / 60.0) * preisProMinute;
+        letzteFahrten.insert(letzteFahrten.begin(), { mm, ss, preis });
+        if (letzteFahrten.size() > 10) letzteFahrten.pop_back();
+    }
+    else if (inside(manageBtn, x, y, mainH)) {
+        if (verwaltenWinId == -1) {
+            verwaltenWinId = glutCreateWindow("Verwalten");
+            glutReshapeWindow(mainW, mainH);
+            glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
+            glutDisplayFunc(displayVerwalten);
+            glutReshapeFunc(reshapeVerwalten);
+            glutMouseFunc(mouseVerwalten);
+            glutPassiveMotionFunc(passiveVerwalten);
+            relayoutVerwalten();
+        }
+        else {
+            glutSetWindow(verwaltenWinId);
+        }
+        glutPostRedisplay();
+    }
+}
+void passiveMain(int x, int y) {
+    startBtn.hover = inside(startBtn, x, y, mainH);
+    stopBtn.hover = inside(stopBtn, x, y, mainH);
+    manageBtn.hover = inside(manageBtn, x, y, mainH);
+}
+void reshapeMain(int w, int h) {
+    mainW = w; mainH = h;
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, w, 0, h);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    relayoutMain();
+}
+
+
+// ---------------------- CSV Export mit Speicher-Dialog ----------------------
+void exportCSV() {
+    wchar_t filename[MAX_PATH] = L"fahrten.csv";
+
+    OPENFILENAMEW ofn{};
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.lpstrFilter = L"CSV-Dateien (*.csv)\0*.csv\0Alle Dateien (*.*)\0*.*\0";
+    ofn.lpstrFile = filename;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.lpstrDefExt = L"csv";
+    ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+
+    if (!GetSaveFileNameW(&ofn)) return; // Abbruch
+
+    std::wstring ws(ofn.lpstrFile);
+    std::string  path(ws.begin(), ws.end());
+
+    std::ofstream file(path);
+    if (!file.is_open()) {
+        MessageBoxW(NULL, L"Fehler beim Öffnen der Datei!", L"Fehler",
+            MB_OK | MB_ICONERROR);
+        return;
+    }
+
+    file << "Dauer (mm:ss);Preis (EUR)\n";
+    for (const auto& f : letzteFahrten) {
+        std::ostringstream ss;
+        ss << std::fixed << std::setprecision(2) << f.preis;
+        std::string preis = ss.str();
+        std::replace(preis.begin(), preis.end(), '.', ','); // Punkt → Komma
+
+        file << f.minuten << ":" << (f.sekunden < 10 ? "0" : "") << f.sekunden
+            << ";" << preis << "\n";
+    }
+    file.close();
+
+    std::wstring msg = L"Datei gespeichert unter:\n\n" + ws;
+    MessageBoxW(NULL, msg.c_str(), L"Export erfolgreich",
+        MB_OK | MB_ICONINFORMATION);
+}
+
+// ---------------------- Verwalten-Fenster ----------------------
+void relayoutVerwalten() {
+    float bw = 200.f, bh = 40.f;
+
+    // "Schliessen" oben rechts
+    closeBtn = { (float)(manaW - bw - 30), (float)(manaH - bh - 20), bw, bh, "Schliessen" };
+
+    // "CSV exportieren" mittig unten unter der Tabelle
+    exportBtn = { (float)(manaW - bw) / 2.0f, 80.f, bw, bh, "CSV exportieren" };
+}
+
+void displayVerwalten() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3f(1, 1, 1);
+
+    // Titel "Verwaltung" zentriert oben
+    std::string title = "Verwaltung";
+    int titleW = textWidth(GLUT_BITMAP_TIMES_ROMAN_24, title);
+    drawText((manaW - titleW) / 2.0f, manaH - 60.f, GLUT_BITMAP_TIMES_ROMAN_24, title);
+
+    // Untertitel
+    std::string subtitle = "Die letzten 10 Fahrten";
+    int subW = textWidth(GLUT_BITMAP_HELVETICA_18, subtitle);
+    drawText((manaW - subW) / 2.0f, manaH - 100.f, GLUT_BITMAP_HELVETICA_18, subtitle);
+
+    // Tabelle linksbündig
+    int startY = manaH - 140;
+    for (size_t i = 0; i < letzteFahrten.size(); ++i) {
+        const auto& f = letzteFahrten[i];
+        std::ostringstream line;
+        line << i + 1 << ". "
+            << f.minuten << ":" << (f.sekunden < 10 ? "0" : "") << f.sekunden
+            << "  -  " << std::fixed << std::setprecision(2) << f.preis << " EUR";
+        drawText(60.f, (float)(startY - (int)(i * 25)), GLUT_BITMAP_HELVETICA_12, line.str());
+    }
+
+    // Buttons
+    drawButton(closeBtn, GLUT_BITMAP_HELVETICA_12); // oben rechts
+    drawButton(exportBtn, GLUT_BITMAP_HELVETICA_12); // mittig unten
 
     glutSwapBuffers();
 }
 
-// --- Maus ---
-bool inside(const Button& b, int x, int y) {
-    return x >= b.x && x <= b.x + b.w && (winH - y) >= b.y && (winH - y) <= b.y + b.h;
+void reshapeVerwalten(int w, int h) {
+    manaW = w; manaH = h;
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, w, 0, h);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    relayoutVerwalten();
 }
-void mouse(int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        if (inside(startBtn, x, y)) {
-            startTime = steady_clock::now();
-            running = true;
-            stopped = false;
-        }
-        else if (inside(stopBtn, x, y)) {
-            running = false;
-            stopped = true;
-        }
-        else if (inside(resetBtn, x, y)) {
-            running = false;
-            stopped = false;
-            elapsedSeconds = 0.0;
-            finalPrice = 0.0;
+
+void mouseVerwalten(int button, int state, int x, int y) {
+    if (button != GLUT_LEFT_BUTTON || state != GLUT_DOWN) return;
+
+    if (inside(exportBtn, x, y, manaH)) {
+        exportCSV();
+    }
+    else if (inside(closeBtn, x, y, manaH)) {
+        glutDestroyWindow(verwaltenWinId);
+        verwaltenWinId = -1;
+        if (mainWinId > 0) {
+            glutSetWindow(mainWinId);
+            glutPostRedisplay();
         }
     }
 }
-void passiveMotion(int x, int y) {
-    startBtn.hover = inside(startBtn, x, y);
-    stopBtn.hover = inside(stopBtn, x, y);
-    resetBtn.hover = inside(resetBtn, x, y);
+
+void passiveVerwalten(int x, int y) {
+    exportBtn.hover = inside(exportBtn, x, y, manaH);
+    closeBtn.hover = inside(closeBtn, x, y, manaH);
 }
 
-// --- Resize: Pixel-Projection + Re-Layout ---
-void reshape(int w, int h) {
-    winW = (w > 1 ? w : 1);
-    winH = (h > 1 ? h : 1);
-    glViewport(0, 0, winW, winH);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(0, winW, 0, winH);   // Pixel-Koordinaten
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    relayout();                     // Buttons und Layout mittig neu setzen
-}
-
+// ---------------------- Timer ----------------------
 void tick(int) {
     glutPostRedisplay();
+    if (verwaltenWinId != -1) {
+        glutSetWindow(verwaltenWinId);
+        glutPostRedisplay();
+        glutSetWindow(mainWinId);
+    }
     glutTimerFunc(100, tick, 0);
 }
 
+// ---------------------- main ----------------------
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowSize(winW, winH);
-    glutCreateWindow("E-Scooter Fahrpreisrechner");
-
+    glutInitWindowSize(mainW, mainH);
+    mainWinId = glutCreateWindow("E-Scooter Fahrpreisrechner");
     glClearColor(0, 0, 0, 1);
 
-    glutDisplayFunc(display);
-    glutReshapeFunc(reshape);
-    glutMouseFunc(mouse);
-    glutPassiveMotionFunc(passiveMotion);
-    glutTimerFunc(100, tick, 0);
+    // Logo laden
+    logoTexture = loadTexture("logo.png", logoW, logoH);
+    if (!logoTexture) {
+        MessageBoxW(NULL, L"Logo konnte nicht geladen werden!", L"Fehler", MB_OK | MB_ICONERROR);
+    }
 
-    relayout(); // Initial
+    glutDisplayFunc(displayMain);
+    glutReshapeFunc(reshapeMain);
+    glutMouseFunc(mouseMain);
+    glutPassiveMotionFunc(passiveMain);
+    glutTimerFunc(100, tick, 0);
+    relayoutMain();
     glutMainLoop();
     return 0;
 }
