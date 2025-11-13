@@ -37,6 +37,14 @@ GLuint loadTexture(const char* filename, int& w, int& h) {
     return tex;
 }
 
+// ---------------------- Ressourcen-Bereinigung ----------------------
+void cleanupResources() {
+    if (logoTexture != 0) {
+        glDeleteTextures(1, &logoTexture);
+        logoTexture = 0;
+    }
+}
+
 // ---------------------- Fahrten-Daten ----------------------
 struct Fahrt {
     int minuten;
@@ -130,13 +138,18 @@ void displayMain() {
         float x = 10.0f;
         float y = mainH - 10.0f;
 
-        // --- Dynamische Skalierung ---
-        // Bei Fensterhöhe 480px -> scale = 0.5
-        // Bei Fensterhöhe >= 900px -> scale = 1.0
+        // --- Dynamische Skalierung mit Division-by-Zero Schutz ---
         float minHeight = 480.0f;
         float maxHeight = 900.0f;
 
-        float scale = 0.5f + 0.5f * ((mainH - minHeight) / (maxHeight - minHeight));
+        float scale = 0.5f;
+        float heightDiff = maxHeight - minHeight;
+
+        // FIX 2: Division durch Null vermeiden
+        if (heightDiff > 0.001f) {
+            scale = 0.5f + 0.5f * ((mainH - minHeight) / heightDiff);
+        }
+
         if (scale < 0.5f) scale = 0.5f;
         if (scale > 1.0f) scale = 1.0f;
 
@@ -238,12 +251,15 @@ void mouseMain(int button, int state, int x, int y) {
         startTime = steady_clock::now(); running = true; stopped = false;
     }
     else if (inside(stopBtn, x, y, mainH)) {
-        running = false; stopped = true;
-        int totalSec = static_cast<int>(elapsedSecs);
-        int mm = totalSec / 60, ss = totalSec % 60;
-        double preis = grundgebuehr + ceil(elapsedSecs / 60.0) * preisProMinute;
-        letzteFahrten.insert(letzteFahrten.begin(), { mm, ss, preis });
-        if (letzteFahrten.size() > 10) letzteFahrten.pop_back();
+        // FIX 4: Nur speichern wenn eine Fahrt läuft (nicht wenn bereits gestoppt)
+        if (running) {
+            running = false; stopped = true;
+            int totalSec = static_cast<int>(elapsedSecs);
+            int mm = totalSec / 60, ss = totalSec % 60;
+            double preis = grundgebuehr + ceil(elapsedSecs / 60.0) * preisProMinute;
+            letzteFahrten.insert(letzteFahrten.begin(), { mm, ss, preis });
+            if (letzteFahrten.size() > 10) letzteFahrten.pop_back();
+        }
     }
     else if (inside(manageBtn, x, y, mainH)) {
         if (verwaltenWinId == -1) {
@@ -262,11 +278,25 @@ void mouseMain(int button, int state, int x, int y) {
         glutPostRedisplay();
     }
 }
+
+// FIX 1: glutPostRedisplay() hinzugefügt für sofortigen Hover-Effekt
 void passiveMain(int x, int y) {
+    bool oldStartHover = startBtn.hover;
+    bool oldStopHover = stopBtn.hover;
+    bool oldManageHover = manageBtn.hover;
+
     startBtn.hover = inside(startBtn, x, y, mainH);
     stopBtn.hover = inside(stopBtn, x, y, mainH);
     manageBtn.hover = inside(manageBtn, x, y, mainH);
+
+    // Nur neu zeichnen wenn sich Hover-Status geändert hat
+    if (oldStartHover != startBtn.hover ||
+        oldStopHover != stopBtn.hover ||
+        oldManageHover != manageBtn.hover) {
+        glutPostRedisplay();
+    }
 }
+
 void reshapeMain(int w, int h) {
     mainW = w; mainH = h;
     glViewport(0, 0, w, h);
@@ -391,9 +421,19 @@ void mouseVerwalten(int button, int state, int x, int y) {
     }
 }
 
+// FIX 1: glutPostRedisplay() hinzugefügt für sofortigen Hover-Effekt
 void passiveVerwalten(int x, int y) {
+    bool oldExportHover = exportBtn.hover;
+    bool oldCloseHover = closeBtn.hover;
+
     exportBtn.hover = inside(exportBtn, x, y, manaH);
     closeBtn.hover = inside(closeBtn, x, y, manaH);
+
+    // Nur neu zeichnen wenn sich Hover-Status geändert hat
+    if (oldExportHover != exportBtn.hover ||
+        oldCloseHover != closeBtn.hover) {
+        glutPostRedisplay();
+    }
 }
 
 // ---------------------- Timer ----------------------
@@ -407,6 +447,12 @@ void tick(int) {
     glutTimerFunc(100, tick, 0);
 }
 
+// ---------------------- Cleanup beim Beenden ----------------------
+// FIX 3: Ressourcen werden beim Beenden freigegeben
+void onExit() {
+    cleanupResources();
+}
+
 // ---------------------- main ----------------------
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
@@ -414,6 +460,9 @@ int main(int argc, char** argv) {
     glutInitWindowSize(mainW, mainH);
     mainWinId = glutCreateWindow("E-Scooter Fahrpreisrechner");
     glClearColor(0, 0, 0, 1);
+
+    // FIX 3: Cleanup-Funktion registrieren
+    atexit(onExit);
 
     // Logo laden
     logoTexture = loadTexture("logo.png", logoW, logoH);
