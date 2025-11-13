@@ -1,0 +1,19 @@
+# Visual Studio temporäre Dateien, Build-Ergebnisse und Caches
+.vs/
+*.vc.db
+*.ipch
+*.obj
+*.pdb
+*.exe
+*.log
+*.ilk
+*.user
+*.suo
+*.cachefile
+*.tlog
+Debug/
+Release/
+x64/
+x86/
+*.idb
+*.opendb
