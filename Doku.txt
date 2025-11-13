@@ -1,0 +1,7 @@
+Doku
+
+ihr braucht eigentlich nur die main.cpp und die stb_image.h
+
+die logo.png in den ordner schmeißen wo auch die exe ist
+
+OpenGL-Pakete über NuGet installieren
