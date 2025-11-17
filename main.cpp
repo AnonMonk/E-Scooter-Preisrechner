@@ -119,24 +119,24 @@ void drawLoginButton(float x, float y, float w, float h, const string& label, bo
 
 // Zeichne Textfeld
 void drawTextField(float x, float y, float w, float h, const string& text, bool active, bool isPassword, bool showCursor) {
-    // Hintergrund
+    // Hintergrund - hellerer Grauton für bessere Lesbarkeit
     if (active) {
-        drawFilledRect(x, y, w, h, 0.15f, 0.15f, 0.15f); // Dunkler wenn aktiv
+        drawFilledRect(x, y, w, h, 0.25f, 0.25f, 0.28f); // Heller wenn aktiv
     }
     else {
-        drawFilledRect(x, y, w, h, 0.1f, 0.1f, 0.1f);
+        drawFilledRect(x, y, w, h, 0.18f, 0.18f, 0.20f); // Mittelgrau
     }
 
     // Rahmen
     if (active) {
-        drawRect(x, y, w, h, 0.3f, 0.6f, 1.0f, 2.5f); // Blauer Rahmen wenn aktiv
+        drawRect(x, y, w, h, 0.4f, 0.7f, 1.0f, 2.5f); // Hellblauer Rahmen wenn aktiv
     }
     else {
-        drawRect(x, y, w, h, 0.4f, 0.4f, 0.4f, 1.5f);
+        drawRect(x, y, w, h, 0.5f, 0.5f, 0.5f, 1.5f);
     }
 
-    // Text anzeigen
-    glColor3f(1, 1, 1);
+    // Text anzeigen - helles Weiß, vertikal zentriert
+    glColor3f(1.0f, 1.0f, 1.0f);
     void* font = GLUT_BITMAP_HELVETICA_18;
 
     string displayText = text;
@@ -144,7 +144,8 @@ void drawTextField(float x, float y, float w, float h, const string& text, bool 
         displayText = string(text.length(), '*'); // Passwort maskieren
     }
 
-    glRasterPos2f(x + 10, y + h / 2 + 6);
+    // Besser zentrierte vertikale Position
+    glRasterPos2f(x + 10, y + h / 2 + -7);
     for (char c : displayText) {
         glutBitmapCharacter(font, c);
     }
@@ -183,12 +184,12 @@ void drawLoginDialog() {
     float dialogX = (w - dialogW) / 2;
     float dialogY = (h - dialogH) / 2;
 
-    // Dialog-Hintergrund
-    drawFilledRect(dialogX, dialogY, dialogW, dialogH, 0.05f, 0.05f, 0.05f);
-    drawRect(dialogX, dialogY, dialogW, dialogH, 0.3f, 0.3f, 0.3f, 3.0f);
+    // Dialog-Hintergrund - dunkler für besseren Kontrast
+    drawFilledRect(dialogX, dialogY, dialogW, dialogH, 0.02f, 0.02f, 0.02f);
+    drawRect(dialogX, dialogY, dialogW, dialogH, 0.5f, 0.5f, 0.5f, 3.0f);
 
-    // Titel
-    glColor3f(1, 1, 1);
+    // Titel - helleres Weiß
+    glColor3f(1.0f, 1.0f, 1.0f);
     void* fontTitle = GLUT_BITMAP_TIMES_ROMAN_24;
     string title = "Login - Verwaltung";
     int titleW = glutBitmapLength(fontTitle, (const unsigned char*)title.c_str());
@@ -197,8 +198,8 @@ void drawLoginDialog() {
         glutBitmapCharacter(fontTitle, c);
     }
 
-    // Untertitel
-    glColor3f(0.7f, 0.7f, 0.7f);
+    // Untertitel - helleres Grau
+    glColor3f(0.85f, 0.85f, 0.85f);
     void* fontSub = GLUT_BITMAP_HELVETICA_12;
     string subtitle = "Bitte melden Sie sich an";
     int subW = glutBitmapLength(fontSub, (const unsigned char*)subtitle.c_str());
@@ -207,38 +208,30 @@ void drawLoginDialog() {
         glutBitmapCharacter(fontSub, c);
     }
 
-    // Label: Benutzername
-    glColor3f(0.9f, 0.9f, 0.9f);
+    // Label: Benutzername - helleres Weiß
+    glColor3f(1.0f, 1.0f, 1.0f);
     void* font = GLUT_BITMAP_HELVETICA_18;
-    glRasterPos2f(dialogX + 30, dialogY + dialogH - 100);
+    glRasterPos2f(dialogX + 30, dialogY + dialogH - 95);
     string label1 = "Benutzername:";
     for (char c : label1) {
         glutBitmapCharacter(font, c);
     }
 
     // Textfeld: Benutzername
-    drawTextField(dialogX + 30, dialogY + dialogH - 130, dialogW - 60, 35,
+    drawTextField(dialogX + 30, dialogY + dialogH - 135, dialogW - 60, 35,
         loginDlg.username, loginDlg.usernameActive, false, loginDlg.cursorVisible);
 
-    // Label: Passwort
-    glColor3f(0.9f, 0.9f, 0.9f);
-    glRasterPos2f(dialogX + 30, dialogY + dialogH - 170);
+    // Label: Passwort - helleres Weiß
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glRasterPos2f(dialogX + 30, dialogY + dialogH - 180);
     string label2 = "Passwort:";
     for (char c : label2) {
         glutBitmapCharacter(font, c);
     }
 
     // Textfeld: Passwort
-    drawTextField(dialogX + 30, dialogY + dialogH - 200, dialogW - 60, 35,
+    drawTextField(dialogX + 30, dialogY + dialogH - 220, dialogW - 60, 35,
         loginDlg.password, !loginDlg.usernameActive, true, loginDlg.cursorVisible);
-
-    // Hinweis
-    glColor3f(0.6f, 0.6f, 0.6f);
-    glRasterPos2f(dialogX + 30, dialogY + dialogH - 230);
-    string hint = "Standard: admin / 1234";
-    for (char c : hint) {
-        glutBitmapCharacter(fontSub, c);
-    }
 
     // Buttons
     float btnW = 150;
@@ -308,7 +301,7 @@ void loginMouse(int button, int state, int x, int y) {
 
     // Prüfe Benutzername-Feld
     float field1X = dialogX + 30;
-    float field1Y = dialogY + dialogH - 130;
+    float field1Y = dialogY + dialogH - 135;
     float field1W = dialogW - 60;
     float field1H = 35;
 
@@ -320,7 +313,7 @@ void loginMouse(int button, int state, int x, int y) {
     }
 
     // Prüfe Passwort-Feld
-    float field2Y = dialogY + dialogH - 200;
+    float field2Y = dialogY + dialogH - 220;
     if (x >= field1X && x <= field1X + field1W &&
         glY >= field2Y && glY <= field2Y + field1H) {
         loginDlg.usernameActive = false;
