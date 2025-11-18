@@ -1,11 +1,7 @@
 Doku
 
-ihr braucht eigentlich nur die main.cpp und die stb_image.h
+ihr braucht eigentlich nur die alle cpp und .h dateien
 
-die logo.png in den ordner schmeißen wo auch die exe ist
+die logo.png in den projektordner schmeißen da wo auch die cpp und .h sind
 
 OpenGL-Pakete über NuGet installieren
-
-TODO:
-Verwaltung Account
-minimal Fenstergröße zu int 854x480
