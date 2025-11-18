@@ -1,0 +1,628 @@
+================================================================================
+                    E-SCOOTER FAHRPREISRECHNER
+                   Vollständige Dokumentation
+                        Version 1.0
+                      November 2025
+================================================================================
+
+INHALTSVERZEICHNIS
+==================
+
+1. Projekt-Übersicht
+2. Schnellstart-Anleitung
+3. Dateistruktur
+4. Installation & Kompilierung
+5. Konfiguration
+6. API-Referenz
+7. Fehlerbehebung
+8. Funktionale Beschreibung
+
+
+================================================================================
+1. PROJEKT-ÜBERSICHT
+================================================================================
+
+BESCHREIBUNG
+------------
+Ein grafischer Fahrpreisrechner für E-Scooter mit Timer-Funktion, Login-System
+und Verwaltungsbereich für Fahrtenhistorie.
+
+HAUPTFUNKTIONEN
+---------------
+• Timer-System: Start/Stop-Funktionalität für Fahrten
+• Preisberechnung: Automatische Berechnung basierend auf Zeit
+• Login-System: Zugriffskontrolle für Verwaltungsbereich
+• Verwaltung: Anzeige der letzten 10 Fahrten
+• CSV-Export: Export der Fahrtendaten
+• Logo-Display: Dynamisch skalierende Logo-Anzeige
+
+TECHNOLOGIE-STACK
+-----------------
+• Programmiersprache: C++
+• GUI-Framework: OpenGL mit FreeGLUT
+• Bildverarbeitung: STB Image Library
+• Plattform: Windows (Visual Studio)
+
+STANDARD-LOGIN
+--------------
+Benutzername: admin
+Passwort: 1234
+
+
+================================================================================
+2. SCHNELLSTART-ANLEITUNG
+================================================================================
+
+SCHRITT 1: PROJEKT VORBEREITEN
+-------------------------------
+1. Öffne dein Visual Studio Projekt
+2. Erstelle einen neuen Ordner "src" (optional)
+3. Kopiere ALLE .h und .cpp Dateien in den Projekt-Ordner
+4. Kopiere stb_image.h auch dorthin
+
+SCHRITT 2: DATEIEN ZUM PROJEKT HINZUFÜGEN
+------------------------------------------
+Im Solution Explorer:
+
+A) Source Files hinzufügen:
+   1. Rechtsklick auf "Source Files"
+   2. Add → Existing Item...
+   3. Wähle alle .cpp Dateien aus:
+      ☑ common.cpp
+      ☑ login.cpp
+      ☑ mainwindow.cpp
+      ☑ verwaltung.cpp
+      ☑ main.cpp
+   4. Klick auf "Add"
+
+B) Header Files hinzufügen:
+   1. Rechtsklick auf "Header Files"
+   2. Add → Existing Item...
+   3. Wähle alle .h Dateien aus:
+      ☑ common.h
+      ☑ login.h
+      ☑ mainwindow.h
+      ☑ verwaltung.h
+      ☑ stb_image.h
+   4. Klick auf "Add"
+
+SCHRITT 3: PROJEKT-EINSTELLUNGEN
+---------------------------------
+1. Rechtsklick auf Projekt → Properties
+2. C/C++ → General → Additional Include Directories
+   Hinzufügen: C:\freeglut\include
+3. Linker → General → Additional Library Directories
+   Hinzufügen: C:\freeglut\lib\x64 (oder x86)
+4. Linker → Input → Additional Dependencies
+   Hinzufügen:
+   - freeglut.lib
+   - opengl32.lib
+   - glu32.lib
+   - user32.lib
+   - gdi32.lib
+   - comdlg32.lib
+
+SCHRITT 4: KOMPILIEREN
+-----------------------
+1. Build → Build Solution (F7)
+2. Bei Erfolg: "Build succeeded" in der Ausgabe
+3. Debug → Start Debugging (F5) zum Testen
+
+SCHRITT 5: DEPLOYMENT
+----------------------
+Kopiere aus dem Release-Ordner:
+- EScooterCalculator.exe
+- freeglut.dll
+- logo.png (optional)
+
+
+================================================================================
+3. DATEISTRUKTUR
+================================================================================
+
+SOURCE-CODE DATEIEN (9 DATEIEN)
+--------------------------------
+
+1. common.h / common.cpp
+   Verantwortlich für:
+   • Globale Variablen (Fenstergrößen, IDs)
+   • Datenstrukturen (Button, Fahrt)
+   • Basis-Zeichenfunktionen (drawRect, drawFilledRect)
+   • Textur-Management (loadTexture)
+   • Ressourcen-Verwaltung (cleanupResources)
+
+2. login.h / login.cpp
+   Verantwortlich für:
+   • Login-Dialog Darstellung
+   • Credential-Überprüfung
+   • Eingabefeld-Rendering
+   • Keyboard-/Maus-Eingabe für Login
+   • Modal-Dialog-Loop
+
+3. mainwindow.h / mainwindow.cpp
+   Verantwortlich für:
+   • Hauptfenster-Rendering
+   • Timer-Funktionalität (Start/Stop)
+   • Preisberechnung
+   • Logo-Anzeige
+   • Button-Verwaltung (Start, Stop, Verwalten)
+   • Window-Resizing
+
+4. verwaltung.h / verwaltung.cpp
+   Verantwortlich für:
+   • Verwaltungsfenster-Darstellung
+   • Fahrten-Auflistung
+   • CSV-Export-Funktionalität
+   • Button-Verwaltung (Schließen, Export)
+
+5. main.cpp
+   Verantwortlich für:
+   • Programminitialisierung
+   • GLUT-Setup
+   • Timer-Callback (100ms Intervall)
+   • Cleanup beim Beenden
+
+
+================================================================================
+4. INSTALLATION & KOMPILIERUNG
+================================================================================
+
+SYSTEMANFORDERUNGEN
+-------------------
+Hardware:
+• Prozessor: x86/x64 kompatibel
+• RAM: Mindestens 512 MB
+• Grafikkarte: OpenGL 1.1 kompatibel
+• Bildschirmauflösung: Mindestens 854x480
+
+Software:
+• Betriebssystem: Windows 7 oder höher
+• Compiler: Visual Studio 2015 oder neuer (mit C++11 Support)
+• Bibliotheken: FreeGLUT 3.0+, OpenGL 1.1+, Windows SDK
+
+FREEGLUT INSTALLIEREN
+---------------------
+1. Download von https://www.transmissionzero.co.uk/software/freeglut-devel/
+2. Entpacke in z.B. C:\freeglut
+3. Füge Include-Pfad hinzu: C:\freeglut\include
+4. Füge Lib-Pfad hinzu: C:\freeglut\lib\x64
+5. Kopiere freeglut.dll ins Projekt-Verzeichnis
+
+KOMPILIERUNGS-FEHLER BEHEBEN
+-----------------------------
+"cannot open file stb_image.h":
+→ stb_image.h in Projekt-Ordner kopieren
+
+"unresolved external symbol":
+→ Alle .cpp Dateien zu "Source Files" hinzufügen
+
+"multiple definition":
+→ Alte/doppelte .cpp Dateien aus Projekt löschen
+
+"cannot open file freeglut.lib":
+→ Library-Pfade in Project Properties prüfen
+
+
+================================================================================
+5. KONFIGURATION
+================================================================================
+
+TARIF ANPASSEN
+--------------
+Datei: common.cpp, Zeilen 17-18
+
+Aktuell:
+    const double grundgebuehr = 1.00;      // 1.00 EUR
+    const double preisProMinute = 0.25;    // 0.25 EUR
+
+Beispiel Premium-Tarif:
+    const double grundgebuehr = 2.00;      // 2.00 EUR
+    const double preisProMinute = 0.35;    // 0.35 EUR
+
+Beispiel Sonder-Aktion:
+    const double grundgebuehr = 0.50;      // 0.50 EUR
+    const double preisProMinute = 0.15;    // 0.15 EUR
+
+LOGIN-DATEN ÄNDERN
+------------------
+Datei: login.cpp, Zeile 7
+
+Aktuell:
+    if (username == "admin" && password == "1234") return true;
+
+Ändern zu:
+    if (username == "manager" && password == "geheim2024") return true;
+
+TEXT-POSITION IN EINGABEFELDERN
+--------------------------------
+Datei: login.cpp, Zeile 99
+
+Aktuell:
+    glRasterPos2f(x + 10, y + h / 2 - 7);
+
+Text höher (weniger subtrahieren):
+    glRasterPos2f(x + 10, y + h / 2 - 3);
+
+Text tiefer (mehr subtrahieren):
+    glRasterPos2f(x + 10, y + h / 2 - 11);
+
+Perfekt zentriert:
+    glRasterPos2f(x + 10, y + h / 2 + 0);
+
+FENSTER-MINDESTGRÖSSE ÄNDERN
+-----------------------------
+Dateien: mainwindow.cpp Zeile 236, verwaltung.cpp Zeile 94
+
+Aktuell:
+    const int MIN_WIDTH = 854;
+    const int MIN_HEIGHT = 480;
+
+Größer:
+    const int MIN_WIDTH = 1024;
+    const int MIN_HEIGHT = 768;
+
+TIMER-UPDATE-INTERVALL
+----------------------
+Datei: main.cpp, Zeile 13
+
+Aktuell (100ms = 10 FPS):
+    glutTimerFunc(100, tick, 0);
+
+Schneller (16ms = 60 FPS):
+    glutTimerFunc(16, tick, 0);
+
+Langsamer (500ms = 2 FPS):
+    glutTimerFunc(500, tick, 0);
+
+
+================================================================================
+6. API-REFERENZ
+================================================================================
+
+COMMON-MODUL (common.h)
+-----------------------
+
+Strukturen:
+-----------
+struct Button {
+    float x, y, w, h;  // Position und Größe
+    string label;       // Button-Text
+    bool hover;         // Maus darüber?
+};
+
+struct Fahrt {
+    int minuten;        // Dauer in Minuten
+    int sekunden;       // Rest-Sekunden
+    double preis;       // Berechneter Preis
+};
+
+Globale Variablen:
+------------------
+extern int mainW;                    // Hauptfenster Breite (854)
+extern int mainH;                    // Hauptfenster Höhe (480)
+extern int manaW;                    // Verwaltung Breite
+extern int manaH;                    // Verwaltung Höhe
+
+extern int mainWinId;                // GLUT Window ID Hauptfenster
+extern int verwaltenWinId;           // GLUT Window ID Verwaltung
+
+extern vector<Fahrt> letzteFahrten;  // Max. 10 Fahrten
+
+extern const double grundgebuehr;     // 1.00 EUR
+extern const double preisProMinute;   // 0.25 EUR
+
+extern steady_clock::time_point startTime;
+extern double elapsedSecs;
+extern bool running;
+extern bool stopped;
+
+extern GLuint logoTexture;
+extern int logoW, logoH;
+
+Funktionen:
+-----------
+void drawFilledRect(float x, float y, float w, float h,
+                    float r, float g, float b);
+// Zeichnet gefülltes Rechteck
+// Parameter: Position (x,y), Größe (w,h), RGB-Farbe (0.0-1.0)
+
+void drawRect(float x, float y, float w, float h,
+              float r, float g, float b, float thickness = 2.0f);
+// Zeichnet Rechteck-Rahmen
+// Parameter: Position, Größe, Farbe, Linienstärke
+
+GLuint loadTexture(const char* filename, int& w, int& h);
+// Lädt Bilddatei als OpenGL-Textur
+// Parameter: Dateiname, Ausgabe Breite/Höhe
+// Rückgabe: Textur-ID (0 bei Fehler)
+
+void cleanupResources();
+// Gibt alle OpenGL-Ressourcen frei
+
+
+LOGIN-MODUL (login.h)
+---------------------
+
+Strukturen:
+-----------
+struct LoginDialog {
+    bool active;            // Dialog aktiv/sichtbar
+    bool loginSuccess;      // Login erfolgreich
+    string username;        // Eingabe Benutzername
+    string password;        // Eingabe Passwort
+    bool usernameActive;    // Welches Feld aktiv
+    int cursorBlinkTimer;   // Timer für Blinken
+    bool cursorVisible;     // Cursor sichtbar
+};
+
+Funktionen:
+-----------
+bool checkCredentials(const string& username, const string& password);
+// Prüft Login-Daten gegen admin/1234 und credentials.txt
+// Rückgabe: true bei Erfolg
+
+bool showLoginDialog();
+// Öffnet modalen Login-Dialog (blockierend!)
+// Rückgabe: true bei erfolgreichem Login
+
+void drawLoginDialog();
+// Zeichnet Login-Dialog
+
+void loginKeyboard(unsigned char key, int x, int y);
+// Verarbeitet Tastatur-Eingaben für Login
+
+void loginMouse(int button, int state, int x, int y);
+// Verarbeitet Mausklicks im Login-Dialog
+
+
+MAINWINDOW-MODUL (mainwindow.h)
+--------------------------------
+
+Funktionen:
+-----------
+void drawText(float x, float y, void* font, const string& s);
+// Zeichnet Text an Position
+
+int textWidth(void* font, const string& s);
+// Berechnet Textbreite in Pixeln
+
+bool inside(const Button& b, int x, int y, int winH);
+// Prüft ob Mausposition über Button
+
+void drawButton(const Button& b, void* font);
+// Zeichnet Button mit Hover-Effekt
+
+void relayoutMain();
+// Berechnet Button-Positionen neu
+
+void displayMain();
+// Hauptfenster Render-Loop
+
+void reshapeMain(int w, int h);
+// Wird bei Fenstergrößen-Änderung aufgerufen
+
+void mouseMain(int button, int state, int x, int y);
+// Verarbeitet Mausklicks im Hauptfenster
+
+void passiveMain(int x, int y);
+// Verarbeitet Mausbewegung (Hover-Effekte)
+
+
+VERWALTUNG-MODUL (verwaltung.h)
+--------------------------------
+
+Funktionen:
+-----------
+void exportCSV();
+// Öffnet Save-Dialog und exportiert Fahrten als CSV
+
+void displayVerwalten();
+// Verwaltungsfenster Render-Loop
+
+void mouseVerwalten(int button, int state, int x, int y);
+// Verarbeitet Mausklicks
+
+
+================================================================================
+7. FEHLERBEHEBUNG
+================================================================================
+
+KOMPILIERUNGS-FEHLER
+--------------------
+
+"cannot open file stb_image.h"
+Ursache: stb_image.h nicht gefunden
+Lösung:
+  1. Prüfe ob stb_image.h im Projekt-Ordner ist
+  2. Prüfe Include-Pfade in Visual Studio
+  3. Stelle sicher dass stb_image.h in "Header Files" ist
+
+"unresolved external symbol"
+Ursache: Nicht alle .cpp Dateien kompiliert
+Lösung:
+  1. Prüfe ob ALLE .cpp Dateien in "Source Files" sind
+  2. Rebuild Solution (Strg+Shift+B)
+
+"multiple definition of..."
+Ursache: Doppelte Deklaration oder alte main.cpp
+Lösung:
+  1. Lösche alte/doppelte .cpp Dateien
+  2. Clean Solution
+  3. Rebuild
+
+"cannot open file freeglut.lib"
+Ursache: FreeGLUT nicht richtig verlinkt
+Lösung:
+  1. Project Properties → Linker → General
+  2. Additional Library Directories prüfen
+  3. Pfad zu freeglut\lib hinzufügen
+
+LAUFZEIT-FEHLER
+---------------
+
+"freeglut.dll fehlt"
+Ursache: DLL nicht gefunden
+Lösung:
+  1. freeglut.dll ins EXE-Verzeichnis kopieren
+  2. ODER freeglut\bin zu System-PATH hinzufügen
+
+Logo wird nicht angezeigt
+Ursache: logo.png nicht gefunden
+Lösung:
+  1. Prüfe ob logo.png im selben Ordner wie EXE ist
+  2. Prüfe Dateiformat (PNG, JPG, BMP supported)
+  3. Prüfe Dateigröße (zu groß kann Probleme machen)
+
+Login funktioniert nicht
+Ursache: Falsches Passwort
+Lösung:
+  1. Standard-Login probieren: admin / 1234
+  2. credentials.txt Format prüfen: "username:password"
+  3. Keine Leerzeichen vor/nach : in credentials.txt
+
+Buttons reagieren nicht
+Ursache: Koordinaten-Transformation falsch
+Lösung:
+  1. Prüfe ob passiveMotionFunc gesetzt ist
+  2. Debug: Breakpoint in mouseMain/mouseVerwalten
+  3. Prüfe button.hover Status
+
+CSV-Export fehlschlägt
+Ursache: Keine Schreibrechte
+Lösung:
+  1. Als Administrator ausführen
+  2. Anderen Speicherort wählen (z.B. Desktop)
+  3. Prüfe Festplatten-Speicherplatz
+
+
+================================================================================
+8. FUNKTIONALE BESCHREIBUNG
+================================================================================
+
+TIMER-SYSTEM
+------------
+
+Start-Funktionalität:
+Wenn "Start" geklickt:
+  1. startTime = current_time
+  2. running = true
+  3. stopped = false
+  4. Kontinuierliche Zeitberechnung in displayMain()
+
+Stop-Funktionalität:
+Wenn "Stop" geklickt:
+  1. running = false
+  2. stopped = true
+  3. Fahrt speichern in letzteFahrten[]
+  4. Nur erste 10 Fahrten behalten
+
+PREISBERECHNUNG
+---------------
+
+Formel:
+    double minuten_aufgerundet = ceil(sekunden / 60.0)
+    double preis = grundgebuehr + (minuten_aufgerundet * preisProMinute)
+
+Beispiele:
+    00:30 → 1 Min → 1.00 + 0.25 = 1.25 EUR
+    01:00 → 1 Min → 1.00 + 0.25 = 1.25 EUR
+    01:01 → 2 Min → 1.00 + 0.50 = 1.50 EUR
+    05:45 → 6 Min → 1.00 + 1.50 = 2.50 EUR
+
+LOGIN-SYSTEM
+------------
+
+Authentifizierung:
+Reihenfolge der Prüfung:
+  1. Fest einprogrammiert: admin/1234
+
+Dialog-Bedienung:
+Tastatur:
+  • Tab: Zwischen Feldern wechseln
+  • Enter: Login durchführen
+  • Escape: Abbrechen
+  • Backspace: Zeichen löschen
+
+Maus:
+  • Klick auf Feld: Feld aktivieren
+  • Klick auf "Login": Login durchführen
+  • Klick auf "Abbrechen": Dialog schließen
+
+VERWALTUNGSFENSTER
+------------------
+
+Fahrten-Anzeige:
+  • Neueste Fahrt oben (Index 0)
+  • Maximal 10 Fahrten sichtbar
+  • Format: "Nr. mm:ss - xx.xx EUR"
+  • Untertitel zeigt Gesamtanzahl
+
+CSV-Export:
+Format (deutsche Formatierung):
+    Dauer (mm:ss);Preis (EUR)
+    05:23;2,50
+    03:45;1,75
+
+Besonderheiten:
+  • Dezimaltrennzeichen: Komma (nicht Punkt)
+  • Delimiter: Semikolon
+  • UTF-8 ohne BOM
+  • Kompatibel mit Excel (deutsch)
+
+
+================================================================================
+HÄUFIGE AUFGABEN - QUICK REFERENCE
+================================================================================
+
+Tarif ändern:
+    Datei: common.cpp, Zeilen 17-18
+    const double grundgebuehr = 1.00;
+    const double preisProMinute = 0.25;
+
+Login-Daten ändern:
+    Datei: login.cpp, Zeile 7
+    if (username == "admin" && password == "1234") return true;
+
+Text-Position in Eingabefeldern:
+    Datei: login.cpp, Zeile 99
+    glRasterPos2f(x + 10, y + h / 2 - 7);
+    // Höher: -3, Tiefer: -11
+
+Mindest-Fenstergröße:
+    Dateien: mainwindow.cpp (236), verwaltung.cpp (94)
+    const int MIN_WIDTH = 854;
+    const int MIN_HEIGHT = 480;
+
+Timer-Geschwindigkeit:
+    Datei: main.cpp, Zeile 13
+    glutTimerFunc(100, tick, 0);  // 100ms = 10 FPS
+
+
+================================================================================
+KONTAKT & SUPPORT
+================================================================================
+
+Bei Fragen oder Problemen:
+  1. Prüfe diese Dokumentation
+  2. Prüfe Fehlerbehebung-Abschnitt
+  3. Erstelle detaillierte Fehlerbeschreibung mit:
+     - Betriebssystem & Version
+     - Visual Studio Version
+     - Fehlermeldung (komplett)
+     - Schritte zur Reproduktion
+
+
+================================================================================
+WEITERFÜHRENDE RESSOURCEN
+================================================================================
+
+OpenGL & FreeGLUT:
+  • FreeGLUT Dokumentation: http://freeglut.sourceforge.net/docs/api.php
+  • OpenGL Tutorial: https://www.opengl-tutorial.org/
+  • Learn OpenGL: https://learnopengl.com/
+
+================================================================================
+                            ENDE DER DOKUMENTATION
+                     E-Scooter Fahrpreisrechner v1.0
+                              November 2025
+================================================================================
