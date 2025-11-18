@@ -1,9 +1,9 @@
-#include "login.h"
+ï»¿#include "login.h"
 
 // ---------------------- Login-Dialog Instanz ----------------------
 LoginDialog loginDlg;
 
-// ---------------------- Login-Credentials prüfen ----------------------
+// ---------------------- Login-Credentials prï¿½fen ----------------------
 bool checkCredentials(const string& username, const string& password) {
     // Fest einprogrammierter Benutzer (ohne credentials.txt)
     if (username == "admin" && password == "1234") return true;
@@ -64,7 +64,7 @@ void drawLoginButton(float x, float y, float w, float h, const string& label, bo
 
 // ---------------------- Zeichne Textfeld ----------------------
 void drawTextField(float x, float y, float w, float h, const string& text, bool active, bool isPassword, bool showCursor) {
-    // Hintergrund - hellerer Grauton für bessere Lesbarkeit
+    // Hintergrund - hellerer Grauton fï¿½r bessere Lesbarkeit
     if (active) {
         drawFilledRect(x, y, w, h, 0.25f, 0.25f, 0.28f); // Heller wenn aktiv
     }
@@ -80,7 +80,7 @@ void drawTextField(float x, float y, float w, float h, const string& text, bool 
         drawRect(x, y, w, h, 0.5f, 0.5f, 0.5f, 1.5f);
     }
 
-    // Text anzeigen - helles Weiß, vertikal zentriert
+    // Text anzeigen - helles Weiï¿½, vertikal zentriert
     glColor3f(1.0f, 1.0f, 1.0f);
     void* font = GLUT_BITMAP_HELVETICA_18;
 
@@ -129,11 +129,11 @@ void drawLoginDialog() {
     float dialogX = (w - dialogW) / 2;
     float dialogY = (h - dialogH) / 2;
 
-    // Dialog-Hintergrund - dunkler für besseren Kontrast
+    // Dialog-Hintergrund - dunkler fï¿½r besseren Kontrast
     drawFilledRect(dialogX, dialogY, dialogW, dialogH, 0.02f, 0.02f, 0.02f);
     drawRect(dialogX, dialogY, dialogW, dialogH, 0.5f, 0.5f, 0.5f, 3.0f);
 
-    // Titel - helleres Weiß
+    // Titel - helleres Weiï¿½
     glColor3f(1.0f, 1.0f, 1.0f);
     void* fontTitle = GLUT_BITMAP_TIMES_ROMAN_24;
     string title = "Login - Verwaltung";
@@ -153,7 +153,7 @@ void drawLoginDialog() {
         glutBitmapCharacter(fontSub, c);
     }
 
-    // Label: Benutzername - helleres Weiß
+    // Label: Benutzername - helleres Weiï¿½
     glColor3f(1.0f, 1.0f, 1.0f);
     void* font = GLUT_BITMAP_HELVETICA_18;
     glRasterPos2f(dialogX + 30, dialogY + dialogH - 95);
@@ -166,7 +166,7 @@ void drawLoginDialog() {
     drawTextField(dialogX + 30, dialogY + dialogH - 135, dialogW - 60, 35,
         loginDlg.username, loginDlg.usernameActive, false, loginDlg.cursorVisible);
 
-    // Label: Passwort - helleres Weiß
+    // Label: Passwort - helleres Weiï¿½
     glColor3f(1.0f, 1.0f, 1.0f);
     glRasterPos2f(dialogX + 30, dialogY + dialogH - 180);
     string label2 = "Passwort:";
@@ -192,14 +192,14 @@ void drawLoginDialog() {
     drawLoginButton(btn2X, btnY, btnW, btnH, "Abbrechen", false);
 }
 
-// ---------------------- Keyboard Handler für Login ----------------------
+// ---------------------- Keyboard Handler fï¿½r Login ----------------------
 void loginKeyboard(unsigned char key, int x, int y) {
     if (!loginDlg.active) return;
 
     string& activeField = loginDlg.usernameActive ? loginDlg.username : loginDlg.password;
 
     if (key == 13 || key == 10) { // Enter
-        // Prüfe Login
+        // Prï¿½fe Login
         if (checkCredentials(loginDlg.username, loginDlg.password)) {
             loginDlg.loginSuccess = true;
             loginDlg.active = false;
@@ -208,7 +208,7 @@ void loginKeyboard(unsigned char key, int x, int y) {
         else {
             MessageBoxW(NULL,
                 L"Falscher Benutzername oder Passwort!\n\n"
-                L"Standard-Login:\nBenutzername: admin\nPasswort: 1234",
+                L"Bitte geben Sie die richtigen Daten ein.",
                 L"Login fehlgeschlagen", MB_OK | MB_ICONERROR);
             loginDlg.password.clear();
         }
@@ -232,7 +232,7 @@ void loginKeyboard(unsigned char key, int x, int y) {
     glutPostRedisplay();
 }
 
-// ---------------------- Maus-Handler für Login ----------------------
+// ---------------------- Maus-Handler fï¿½r Login ----------------------
 void loginMouse(int button, int state, int x, int y) {
     if (!loginDlg.active) return;
     if (button != GLUT_LEFT_BUTTON || state != GLUT_DOWN) return;
@@ -244,7 +244,7 @@ void loginMouse(int button, int state, int x, int y) {
     float dialogX = (mainW - dialogW) / 2;
     float dialogY = (mainH - dialogH) / 2;
 
-    // Prüfe Benutzername-Feld
+    // Prï¿½fe Benutzername-Feld
     float field1X = dialogX + 30;
     float field1Y = dialogY + dialogH - 135;
     float field1W = dialogW - 60;
@@ -257,7 +257,7 @@ void loginMouse(int button, int state, int x, int y) {
         return;
     }
 
-    // Prüfe Passwort-Feld
+    // Prï¿½fe Passwort-Feld
     float field2Y = dialogY + dialogH - 220;
     if (x >= field1X && x <= field1X + field1W &&
         glY >= field2Y && glY <= field2Y + field1H) {
@@ -266,7 +266,7 @@ void loginMouse(int button, int state, int x, int y) {
         return;
     }
 
-    // Prüfe Buttons
+    // Prï¿½fe Buttons
     float btnW = 150;
     float btnH = 40;
     float btnY = dialogY + 30;
@@ -284,7 +284,7 @@ void loginMouse(int button, int state, int x, int y) {
         else {
             MessageBoxW(NULL,
                 L"Falscher Benutzername oder Passwort!\n\n"
-                L"Standard-Login:\nBenutzername: admin\nPasswort: 1234",
+                L"Bitte geben Sie die richtigen Daten ein.",
                 L"Login fehlgeschlagen", MB_OK | MB_ICONERROR);
             loginDlg.password.clear();
             glutPostRedisplay();
@@ -302,7 +302,7 @@ void loginMouse(int button, int state, int x, int y) {
     }
 }
 
-// ---------------------- Öffne Login-Dialog ----------------------
+// ---------------------- ï¿½ffne Login-Dialog ----------------------
 bool showLoginDialog() {
     loginDlg.active = true;
     loginDlg.loginSuccess = false;
